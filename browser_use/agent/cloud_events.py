@@ -126,6 +126,7 @@ class CreateAgentStepEvent(BaseEvent):
 	actions: list[dict]
 	screenshot_url: str | None = Field(None, max_length=MAX_FILE_CONTENT_SIZE)  # ~50MB for base64 images
 	url: str = Field(default='', max_length=MAX_URL_LENGTH)
+	elements_coordinates: list[dict] | None = Field(None)
 
 	@field_validator('screenshot_url')
 	@classmethod
@@ -170,6 +171,7 @@ class CreateAgentStepEvent(BaseEvent):
 			actions=actions_data,  # List of action dicts
 			url=browser_state_summary.url,
 			screenshot_url=screenshot_url,
+			elements_coordinates=agent.browser_session._last_elements_coordinates,
 		)
 
 
@@ -191,6 +193,7 @@ class CreateAgentTaskEvent(BaseEvent):
 	user_feedback_type: str | None = Field(None, max_length=10)  # UserFeedbackType enum value as string
 	user_comment: str | None = Field(None, max_length=MAX_COMMENT_LENGTH)
 	gif_url: str | None = Field(None, max_length=MAX_URL_LENGTH)
+	elements_coordinates: list[dict] | None = Field(None)
 
 	@classmethod
 	def from_agent(cls, agent) -> 'CreateAgentTaskEvent':
@@ -213,6 +216,7 @@ class CreateAgentTaskEvent(BaseEvent):
 			user_feedback_type=None,
 			user_comment=None,
 			gif_url=None,
+			elements_coordinates=None,
 		)
 
 

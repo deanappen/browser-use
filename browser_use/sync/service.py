@@ -10,7 +10,7 @@ import shutil
 import anyio
 import httpx
 from bubus import BaseEvent
-
+from browser_use.browser import BrowserSession
 from browser_use.config import CONFIG
 from browser_use.sync.auth import TEMP_USER_ID, DeviceAuthClient
 
@@ -20,10 +20,11 @@ logger = logging.getLogger(__name__)
 class CloudSync:
 	"""Service for syncing events to the Browser Use cloud"""
 
-	def __init__(self, base_url: str | None = None, enable_auth: bool = True):
+	def __init__(self, base_url: str | None = None, enable_auth: bool = True, browser_session: BrowserSession | None = None ):
 		# Backend API URL for all API requests - can be passed directly or defaults to env var
 		self.base_url = base_url or CONFIG.BROWSER_USE_CLOUD_API_URL
 		self.enable_auth = enable_auth
+		self.browser_session = browser_session
 		self.auth_client = DeviceAuthClient(base_url=self.base_url) if enable_auth else None
 		self.pending_events: list[BaseEvent] = []
 		self.auth_task = None
@@ -172,11 +173,13 @@ class CloudSync:
 			# Update user_id and device_id
 			user_id = self.auth_client.user_id
 			device_id = self.auth_client.device_id
+			_last_elements_coordinates = self.browser_session._last_elements_coordinates
 			for event in events:
 				if 'user_id' in event:
 					event['user_id'] = user_id
 				# Add device_id to all events
 				event['device_id'] = device_id
+				event['_last_elements_coordinates'] = _last_elements_coordinates
 
 			# Write back
 			updated_content = '\n'.join(json.dumps(event) for event in events) + '\n'

@@ -444,7 +444,7 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		# Cloud sync service
 		self.enable_cloud_sync = CONFIG.BROWSER_USE_CLOUD_SYNC
 		if self.enable_cloud_sync or cloud_sync is not None:
-			self.cloud_sync = cloud_sync or CloudSync()
+			self.cloud_sync = cloud_sync or CloudSync(browser_session=browser_session)
 			# Register cloud sync handler
 			self.eventbus.on('*', self.cloud_sync.handle_event)
 
