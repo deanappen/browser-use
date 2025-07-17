@@ -89,6 +89,7 @@ class DOMElementNode(DOMBaseNode):
 	viewport_coordinates: CoordinateSet | None = None
 	page_coordinates: CoordinateSet | None = None
 	viewport_info: ViewportInfo | None = None
+	coordinates: CoordinateSet | None = None
 
 	"""
 	### State injected by the browser context.
@@ -111,6 +112,7 @@ class DOMElementNode(DOMBaseNode):
 			'viewport_coordinates': self.viewport_coordinates,
 			'page_coordinates': self.page_coordinates,
 			'children': [child.__json__() for child in self.children],
+      "coordinates": self.coordinates,
 		}
 
 	def __repr__(self) -> str:

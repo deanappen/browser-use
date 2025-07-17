@@ -289,6 +289,7 @@ class BrowserSession(BaseModel):
 	_original_browser_session: Any = PrivateAttr(default=None)  # Reference to prevent GC of the original session when copied
 	_owns_browser_resources: bool = PrivateAttr(default=True)  # True if this instance owns and should clean up browser resources
 	_auto_download_pdfs: bool = PrivateAttr(default=True)  # Auto-download PDFs when detected
+	_last_elements_coordinates: list[dict[str, Any]] | None = PrivateAttr(default=None)
 	_subprocess: Any = PrivateAttr(default=None)  # Chrome subprocess reference for error handling
 
 	@model_validator(mode='after')

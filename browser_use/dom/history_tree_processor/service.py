@@ -26,6 +26,7 @@ class HistoryTreeProcessor:
 			dom_element.shadow_root,
 			css_selector=css_selector,
 			page_coordinates=dom_element.page_coordinates,
+			coordinates=dom_element.coordinates,
 			viewport_coordinates=dom_element.viewport_coordinates,
 			viewport_info=dom_element.viewport_info,
 		)

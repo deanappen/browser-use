@@ -379,6 +379,39 @@
     return index;
   }
 
+  function getElementCoordinates(element) {
+    const rect = element.getBoundingClientRect();
+    // console.log('=======getElementCoordinates=====', rect.width, rect.height)
+    return {
+      found: true,
+      tagName: element.tagName,
+      text: element.textContent?.trim().substring(0, 100) || '',
+      className: element.className || '',
+      id: element.id || '',
+      box: {
+        left: Math.round(rect.left),
+        top: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        right: Math.round(rect.right),
+        bottom: Math.round(rect.bottom)
+      },
+      click_coordinates: {
+        x: Math.round(rect.left + rect.width / 2),
+        y: Math.round(rect.top + rect.height / 2),
+        pageX: Math.round(rect.left + rect.width / 2 + window.scrollX),
+        pageY: Math.round(rect.top + rect.height / 2 + window.scrollY)
+      },
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY
+      },
+      timestamp: Date.now()
+    };
+  }
+
 
   function getXPathTree(element, stopAtBoundary = true) {
     if (xpathCache.has(element)) return xpathCache.get(element);
@@ -1280,6 +1313,7 @@
       attributes: {},
       xpath: getXPathTree(node, true),
       children: [],
+      coordinates: null,
     };
 
     // Get attributes for interactive elements or potential text containers
@@ -1288,6 +1322,7 @@
       for (const name of attributeNames) {
         const value = node.getAttribute(name);
         nodeData.attributes[name] = value;
+        nodeData.raw_node = node;
       }
     }
 
@@ -1299,6 +1334,10 @@
         nodeData.isTopElement = isTopElement(node);
         if (nodeData.isTopElement) {
           nodeData.isInteractive = isInteractiveElement(node);
+          // set interactive element coordinates
+          if(nodeData.isInteractive){
+            nodeData.coordinates = getElementCoordinates(node);
+          } 
           // Call the dedicated highlighting function
           nodeWasHighlighted = handleHighlighting(nodeData, node, parentIframe, isParentHighlighted);
         }

@@ -1,12 +1,15 @@
+from ast import List
 import base64
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import anyio
 from bubus import BaseEvent
 from pydantic import Field, field_validator
 from uuid_extensions import uuid7str
+from browser_use.browser.views import BrowserStateSummary
 
 MAX_STRING_LENGTH = 100000  # 100K chars ~ 25k tokens should be enough
 MAX_URL_LENGTH = 100000
@@ -127,6 +130,8 @@ class CreateAgentStepEvent(BaseEvent):
 	screenshot_url: str | None = Field(None, max_length=MAX_FILE_CONTENT_SIZE)  # ~50MB for base64 images
 	url: str = Field(default='', max_length=MAX_URL_LENGTH)
 	elements_coordinates: list[dict] | None = Field(None)
+	coordinates: list[dict] | None = Field(None)
+	click_coordinates: list[dict] | None = Field(None)
 
 	@field_validator('screenshot_url')
 	@classmethod
@@ -144,7 +149,7 @@ class CreateAgentStepEvent(BaseEvent):
 
 	@classmethod
 	def from_agent_step(
-		cls, agent, model_output, result: list, actions_data: list[dict], browser_state_summary
+		cls, agent, model_output, result: list, actions_data: list[dict], browser_state_summary: BrowserStateSummary
 	) -> 'CreateAgentStepEvent':
 		"""Create a CreateAgentStepEvent from agent step data"""
 		# Get first action details if available
@@ -157,6 +162,27 @@ class CreateAgentStepEvent(BaseEvent):
 		screenshot_url = None
 		if browser_state_summary.screenshot:
 			screenshot_url = f'data:image/png;base64,{browser_state_summary.screenshot}'
+
+		# set click_coordinates & all interactive coordinates
+		click_coordinates = []
+		for action in actions_data:
+			if "click_element_by_index" in action:
+				index = action['click_element_by_index']['index']
+				click_coordinates.append(browser_state_summary.selector_map[index].coordinates)
+
+		coordinates_list = []
+		for key, value in browser_state_summary.selector_map.items():
+			# Check if the DOMElementNode has a 'coordinates' attribute and is interactive
+			if hasattr(value, "coordinates") and value.is_interactive:
+				coordinates_list.append(value.coordinates)
+
+		print(
+			f'====sb1: {coordinates_list}',
+		)
+
+		print(
+			f'====sb2: {click_coordinates}'
+		)
 
 		return cls(
 			user_id='',  # To be filled by cloud handler
@@ -172,6 +198,8 @@ class CreateAgentStepEvent(BaseEvent):
 			url=browser_state_summary.url,
 			screenshot_url=screenshot_url,
 			elements_coordinates=agent.browser_session._last_elements_coordinates,
+			coordinates=coordinates_list,
+			click_coordinates=click_coordinates,
 		)
 
 

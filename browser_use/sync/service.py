@@ -173,13 +173,15 @@ class CloudSync:
 			# Update user_id and device_id
 			user_id = self.auth_client.user_id
 			device_id = self.auth_client.device_id
-			_last_elements_coordinates = self.browser_session._last_elements_coordinates
+			_last_elements_coordinates = getattr(self.browser_session, '_last_elements_coordinates', None)
 			for event in events:
 				if 'user_id' in event:
 					event['user_id'] = user_id
 				# Add device_id to all events
 				event['device_id'] = device_id
-				event['_last_elements_coordinates'] = _last_elements_coordinates
+				# Only add coordinates if they exist
+				if _last_elements_coordinates is not None:
+					event['_last_elements_coordinates'] = _last_elements_coordinates
 
 			# Write back
 			updated_content = '\n'.join(json.dumps(event) for event in events) + '\n'
