@@ -21,39 +21,40 @@ llm = ChatOpenAI(
 # 全局存储原始方法
 _original_methods = {}
 
+
 class BrowserUseCoordinateEnhancer:
     """通过monkey patching增强Browser Use，在默认输出中添加坐标信息"""
-    
+
     def __init__(self):
         _original_methods = {}
         self.applied_patches = False
         self.click_coordinates_cache = {}
-        
+
     def apply_patches(self):
         """应用所有补丁"""
         if self.applied_patches:
             return
-            
+
         self._patch_browser_session_screenshot()
         self._patch_controller_actions()
         self.applied_patches = True
         print("✅ Browser Use坐标增强补丁已应用")
-    
+
     def _patch_browser_session_screenshot(self):
         """补丁BrowserSession的截图方法，同时记录元素坐标"""
-        
+
         # 保存原始方法
         _original_methods['take_screenshot'] = BrowserSession.take_screenshot
-        
+
         async def enhanced_take_screenshot(self, *args, **kwargs):
             """增强的截图方法，同时获取所有可点击元素的坐标"""
-            
+
             # 调用原始截图方法
             screenshot = await _original_methods['take_screenshot'](self, *args, **kwargs)
-            
+
             try:
                 page = await self.get_current_page()
-                
+
                 # 获取所有可点击元素的坐标信息
                 elements_coordinates = await page.evaluate("""
                     () => {
@@ -117,50 +118,51 @@ class BrowserUseCoordinateEnhancer:
                         return elements;
                     }
                 """)
-                
+
                 # 将坐标信息存储到session中，供后续使用
                 self._last_elements_coordinates = elements_coordinates
                 self._last_screenshot_timestamp = await page.evaluate('Date.now()')
-                
+
                 print(f"📍 已记录 {len(elements_coordinates)} 个可点击元素的坐标")
-                
+
             except Exception as e:
                 print(f"❌ 获取元素坐标时出错: {e}")
-            
+
             return screenshot
-        
+
         # 应用补丁
         BrowserSession.take_screenshot = enhanced_take_screenshot
-    
+
     def _patch_controller_actions(self):
         """补丁Controller的动作，添加坐标记录"""
-        
+
         # 获取Controller类
         from browser_use.controller.service import Controller
-        
+
         controller = Controller()
-        
+
         # 保存原始的registry执行方法
         if hasattr(controller, 'registry'):
-            original_execute = getattr(controller.registry, 'execute_action', None)
+            original_execute = getattr(
+                controller.registry, 'execute_action', None)
             if original_execute:
                 _original_methods['execute_action'] = original_execute
-                
+
                 async def enhanced_execute_action(action_name: str, params: dict, **kwargs):
                     """增强的动作执行，记录点击坐标"""
-                    
+
                     # 如果是点击动作，先记录坐标信息
                     if 'click' in action_name.lower():
                         await self._record_click_coordinates(action_name, params, kwargs)
-                    
+
                     # 调用原始方法
                     result = await _original_methods['execute_action'](action_name, params, **kwargs)
-                    
+
                     return result
-                
+
                 # 应用补丁
                 controller.registry.execute_action = enhanced_execute_action
-    
+
     async def _record_click_coordinates(self, action_name: str, params: dict, kwargs: dict):
         """记录点击坐标信息"""
         try:
@@ -168,10 +170,10 @@ class BrowserUseCoordinateEnhancer:
             browser_session = kwargs.get('browser_session')
             if not browser_session:
                 return
-            
+
             page = await browser_session.get_current_page()
             index = params.get('index')
-            
+
             if index is not None:
                 # 获取点击元素的坐标信息
                 click_info = await page.evaluate(f"""
@@ -231,11 +233,11 @@ class BrowserUseCoordinateEnhancer:
                         return {{found: false}};
                     }}
                 """, index)
-                
+
                 if click_info.get('found'):
                     # 缓存点击信息
                     self.click_coordinates_cache[f"{action_name}_{index}"] = click_info
-                    
+
                     # 将坐标信息添加到params中，这样会被包含在事件输出中
                     params['click_coordinates'] = {
                         'click_position': click_info['click_coordinates'],
@@ -249,9 +251,10 @@ class BrowserUseCoordinateEnhancer:
                         'viewport': click_info['viewport'],
                         'timestamp': click_info['timestamp']
                     }
-                    
-                    print(f"🎯 已记录点击坐标: ({click_info['click_coordinates']['x']}, {click_info['click_coordinates']['y']})")
-                    
+
+                    print(
+                        f"🎯 已记录点击坐标: ({click_info['click_coordinates']['x']}, {click_info['click_coordinates']['y']})")
+
         except Exception as e:
             print(f"❌ 记录点击坐标时出错: {e}")
 
@@ -259,29 +262,30 @@ class BrowserUseCoordinateEnhancer:
 # 使用示例
 async def main():
     """使用坐标增强的Browser Use"""
-    
+
     # 方式1: 使用完整的增强器
     enhancer = BrowserUseCoordinateEnhancer()
     enhancer.apply_patches()
-    
+
     # 方式2: 或者使用简单的增强方式
     # setup_simple_coordinate_enhancement()
-    
+
     # 创建agent
     agent = Agent(
         task="访问bing，搜索'Browser Use'，然后点击第一个搜索结果",
-        llm=llm
+        llm=llm,
+        appen_task_id="111111"
     )
-    
+
     try:
         print("🚀 开始运行增强版Browser Use...")
-        
+
         # 运行agent
         history = await agent.run(max_steps=10)
-        
+
         print("✅ Agent运行完成！")
         print("📊 检查事件文件以查看坐标信息...")
-        
+
         # 检查生成的事件文件
         events_dir = Path.home() / ".config" / "browseruse" / "events"
         if events_dir.exists():
@@ -289,16 +293,16 @@ async def main():
             if events_files:
                 latest_file = max(events_files, key=os.path.getmtime)
                 print(f"📄 最新事件文件: {latest_file}")
-                
+
                 with open(latest_file, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
-                
+
                 for i, line in enumerate(lines):
                     try:
                         event = json.loads(line.strip())
-                        if (event.get('event_type') == 'CreateAgentStepEvent' and 
-                            'actions' in event):
-                            
+                        if (event.get('event_type') == 'CreateAgentStepEvent' and
+                                'actions' in event):
+
                             for action in event['actions']:
                                 if 'click' in action.get('action', '').lower():
                                     params = action.get('params', {})
@@ -306,13 +310,14 @@ async def main():
                                         print(f"\n🎯 发现包含坐标的点击事件:")
                                         print(f"   动作: {action.get('action')}")
                                         coords = params['click_coordinates']['click_position']
-                                        print(f"   点击坐标: ({coords['x']}, {coords['y']})")
+                                        print(
+                                            f"   点击坐标: ({coords['x']}, {coords['y']})")
                                         box = params['click_coordinates']['element_box']
                                         print(f"   元素区域: {box}")
-                                        
+
                     except json.JSONDecodeError:
                         continue
-        
+
     except Exception as e:
         print(f"❌ 运行出错: {e}")
 

@@ -125,6 +125,7 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 	def __init__(
 		self,
 		task: str,
+		appen_task_id: str,
 		llm: BaseChatModel,
 		# Optional parameters
 		page: Page | None = None,
@@ -222,6 +223,7 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		# Core components
 		self.task = task
 		self.llm = llm
+		self.appen_task_id = appen_task_id
 		self.controller = (
 			controller if controller is not None else Controller(display_files_in_done_text=display_files_in_done_text)
 		)
@@ -438,7 +440,7 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 
 		# Event bus with WAL persistence
 		# Default to ~/.config/browseruse/events/{agent_session_id}.jsonl
-		wal_path = CONFIG.BROWSER_USE_CONFIG_DIR / 'events' / f'{self.session_id}.jsonl'
+		wal_path = CONFIG.BROWSER_USE_CONFIG_DIR / 'events' / f'{self.appen_task_id}.jsonl'
 		self.eventbus = EventBus(name=f'Agent_{str(self.id)[-4:]}', wal_path=wal_path)
 
 		# Cloud sync service

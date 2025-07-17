@@ -45,8 +45,9 @@ def split_jsonl_to_files(input_file, output_dir, filename_prefix="record", filen
 
 if __name__ == "__main__":
     # 示例用法
-    input_file = "/Users/vincent/.config/browseruse/events/068777c3-a3ab-7335-8000-70f6ae6050b2.jsonl"  # 输入 JSONL 文件
-    output_dir = "output_json_files"  # 输出目录
+    fileName = '06878d5f-56cc-74de-8000-f3f8d01e000e.jsonl'
+    input_file = "/Users/vincent/appen/ai-agent/browser-use/ap-task-batch/" + fileName  # 输入 JSONL 文件
+    output_dir = "output_json_files/" + fileName  # 输出目录
     filename_prefix = "record"  # 文件名前缀
     filename_field = None  # 可选：使用 JSON 中的某个字段作为文件名
     

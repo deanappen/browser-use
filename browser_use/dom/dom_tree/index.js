@@ -396,7 +396,7 @@
         right: Math.round(rect.right),
         bottom: Math.round(rect.bottom)
       },
-      click_coordinates: {
+      click_point_coordinates: {
         x: Math.round(rect.left + rect.width / 2),
         y: Math.round(rect.top + rect.height / 2),
         pageX: Math.round(rect.left + rect.width / 2 + window.scrollX),

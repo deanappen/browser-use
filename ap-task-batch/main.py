@@ -19,6 +19,8 @@ from typing import List
 from dotenv import load_dotenv
 load_dotenv()
 
+dirname = os.path.dirname(__file__)
+
 # 添加工程根目录到python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -28,8 +30,11 @@ from browser_use.llm.openai.chat import ChatOpenAI
 from browser_use.browser.profile import BrowserProfile
 from browser_use.browser.session import BrowserSession
 from browser_use import Agent, BrowserConfig
-
 from pydantic import BaseModel
+
+MAX_STEPS = 20
+
+CONCURRENT_TASKS = 4
 
 # 定义结果输出格式（此处仅作为示例）
 class Post(BaseModel):
@@ -52,22 +57,46 @@ browser_config = BrowserConfig(
 )
 
 
-MAX_STEPS = 10
-
-CONCURRENT_TASKS = 2
-
-
 # 初始化 LLM 模型
 llm = ChatOpenAI(
     model='gpt-4o-mini',
 )
 
+print(f'创建浏览器会话: {dirname}/auth.json')
+
 # 创建共享的 browser_session
 browser_session = BrowserSession(
     browser_profile=BrowserProfile(
         keep_alive=True,
+        disable_security=True,
         user_data_dir=None,
         headless=True,
+        viewport={'width': 964, 'height': 647},
+        storage_state=f'{dirname}/auth.json',
+        proxy=None,
+        ignore_https_errors=True,
+        # ignore_certificate_errors=True,
+        # ignore_certificate_errors_spki_list=None,
+        ignore_default_args=['--enable-automation'],
+        args=[
+            '--disable-popup-blocking',
+            '--disable-notifications',
+            '--disable-translate',
+            '--disable-extensions',
+            '--disable-background-networking',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-breakpad',
+            '--disable-client-side-phishing-detection',
+            '--disable-component-update',
+            '--disable-default-apps',
+            '--disable-dev-shm-usage',
+            # '--disable-features=' + disabledFeatures(assistantMode).join(','),
+            '--disable-hang-monitor',
+            '--disable-ipc-flooding-protection',  # important to be able to make lots of CDP calls in a tight loop
+            '--disable-popup-blocking',
+            '--disable-notifications',
+        ]
     )
 )
 
@@ -109,9 +138,9 @@ async def run_single_task(task_text: str, semaphore: asyncio.Semaphore) -> dict:
             output = {
                 "id": task_id,
                 "task": task_text,
-                "success": result.is_successful,
+                "success": result.is_successful(),
                 "status": status,
-                "result": result_data,
+                # "result": result_data,
             }
         except Exception as e:
             output = {
@@ -121,12 +150,10 @@ async def run_single_task(task_text: str, semaphore: asyncio.Semaphore) -> dict:
                 "error": str(e)
             }
         # 将结果保存到文件，文件名以任务 ID 命名
-        result_filename = f"{task_id}.json"
+        result_filename = f"{dirname}/{task_id}.json"
         try:
-          with open(config_path, 'w') as f:
-				json.dump(new_config.model_dump(), f, indent=2)
             with open(result_filename, "w", encoding="utf-8") as f:
-                json.dump(output, f, ensure_ascii=False, indent=4)
+                json.dump(output, f, ensure_ascii=False, indent=2)
             print(f"Task {task_id} completed. Result saved to {result_filename}")
         except Exception as e_file:
             print(f"Task {task_id} completed, but failed to write file: {e_file}")
@@ -138,7 +165,7 @@ async def main():
     await browser_session.start()
 
     # 从指定的 JSONL 文件中加载所有任务文本（确保文件路径正确）
-    tasks_file = "tasks.jsonl"  # 根据实际情况修改 JSONL 文件路径
+    tasks_file = f'{dirname}/tasks.jsonl'  # 根据实际情况修改 JSONL 文件路径
     task_texts = load_tasks_from_jsonl(tasks_file)
     if not task_texts:
         print("未加载到任何任务，程序退出。")
