@@ -10,12 +10,27 @@ from pathlib import Path
 from typing import Dict, Any, List
 from browser_use import Agent, Controller, ActionResult
 from browser_use.llm import ChatOpenAI
+from browser_use.llm import ChatAzureOpenAI
 from browser_use.browser.session import BrowserSession
 from playwright.async_api import Page
 
 # 初始化 LLM 模型
-llm = ChatOpenAI(
+# llm = ChatOpenAI(
+#     model='gpt-4o-mini',
+# )
+
+
+# Retrieve Azure-specific environment variables
+azure_openai_api_key = os.getenv('AZURE_OPENAI_KEY')
+azure_openai_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
+if not azure_openai_api_key or not azure_openai_endpoint:
+    raise ValueError('AZURE_OPENAI_KEY or AZURE_OPENAI_ENDPOINT is not set')
+# Initialize the Azure OpenAI client
+llm = ChatAzureOpenAI(
     model='gpt-4o-mini',
+    api_key=azure_openai_api_key,
+    # Corrected to use azure_endpoint instead of openai_api_base
+    azure_endpoint=azure_openai_endpoint,
 )
 
 # 全局存储原始方法
@@ -264,8 +279,8 @@ async def main():
     """使用坐标增强的Browser Use"""
 
     # 方式1: 使用完整的增强器
-    enhancer = BrowserUseCoordinateEnhancer()
-    enhancer.apply_patches()
+    # enhancer = BrowserUseCoordinateEnhancer()
+    # enhancer.apply_patches()
 
     # 方式2: 或者使用简单的增强方式
     # setup_simple_coordinate_enhancement()
